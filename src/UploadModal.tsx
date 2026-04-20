@@ -97,6 +97,7 @@ export default function UploadModal({ onClose, pat }: UploadModalProps) {
         name,
         author: api.username,
         description,
+        extended_description: "", //neo: TODO: implement
         category,
         thumbnail: thumbnail.name,
         zips: zipsMapping,

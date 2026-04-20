@@ -69,7 +69,7 @@ function App() {
     let timeoutId: number;
     const poll = async () => {
       try {
-        const proxyRoute = import.meta.env.DEV ? '/github-proxy' : 'https://proxy.corsfix.com/?https://github.com';
+        const proxyRoute = import.meta.env.DEV ? '/github-proxy' : 'https://corsproxy.io/?url=https://github.com';
         const res = await fetch(`${proxyRoute}/login/oauth/access_token`, {
           method: 'POST',
           headers: {
