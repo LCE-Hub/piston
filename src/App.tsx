@@ -38,7 +38,7 @@ function App() {
   const initiateDeviceFlow = async () => {
     try {
       setLoginStatus('Requesting code...');
-      const proxyRoute = import.meta.env.DEV ? '/github-proxy' : 'https://proxy.corsfix.com/?https://github.com';
+      const proxyRoute = import.meta.env.DEV ? '/github-proxy' : 'https://corsproxy.io/?url=https://github.com';
       const res = await fetch(`${proxyRoute}/login/device/code`, {
         method: 'POST',
         headers: {
