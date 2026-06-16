@@ -218,6 +218,10 @@ function App() {
               <h2 className="mc-title">{selectedItem.name} <span className="mc-version">v{selectedItem.version}</span></h2>
               <p className="mc-author">by <strong>{selectedItem.author}</strong></p>
 
+              <a href={`emerald://workshop/${selectedItem.id}?normal`} target="_blank" rel="noreferrer" className="mc-button" style={{ backgroundColor: '#2e7d32', color: 'white', display: 'inline-flex', alignItems: 'center', gap: '0.5rem', textDecoration: 'none', marginBottom: '1rem' }}>
+                Open in Emerald
+              </a>
+
               <div className="mc-description">
                 {selectedItem.description}
               </div>
