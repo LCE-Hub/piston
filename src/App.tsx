@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
-import { fetchRegistry, getRawFileUrl } from './api/registry';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import { fetchRegistry, getRawFileUrl, BUILTIN_EDITIONS } from './api/registry';
 import type { RegistryResponse, MetaJson } from './api/types';
 import { Key, X, Download, Upload, ExternalLink } from 'lucide-react';
 import UploadModal from './UploadModal';
@@ -225,6 +227,31 @@ function App() {
               <div className="mc-description">
                 {selectedItem.description}
               </div>
+
+              {selectedItem.extended_description && selectedItem.extended_description.trim() !== '' && (
+                <div className="mc-extended-description">
+                  <h3>Details</h3>
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                    {selectedItem.extended_description}
+                  </ReactMarkdown>
+                </div>
+              )}
+
+              {selectedItem.required_versions && selectedItem.required_versions.length > 0 && (
+                <div style={{ marginTop: '1.5rem' }}>
+                  <h3 style={{ fontSize: '1rem', textTransform: 'uppercase', color: '#555', textShadow: '1px 1px 0px rgba(255,255,255,0.4)', marginBottom: '0.5rem' }}>Required Editions</h3>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                    {selectedItem.required_versions.map((verId) => {
+                      const ed = BUILTIN_EDITIONS.find((e) => e.id === verId);
+                      return (
+                        <span key={verId} style={{ background: '#373737', color: '#fff', border: '2px solid #1d1d1d', padding: '0.3rem 0.6rem', fontSize: '0.85rem' }}>
+                          {ed?.name || verId}
+                        </span>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
 
               <h3 style={{ marginTop: '2rem' }}>Downloads & Installation</h3>
               <div className="mc-download-list">

@@ -8,6 +8,8 @@ export interface MetaJson {
   thumbnail: string;
   zips: Record<string, string>;
   version: string;
+  dependencies?: string[];
+  required_versions?: string[];
 }
 
 export interface RegistryResponse {
