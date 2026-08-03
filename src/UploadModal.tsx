@@ -33,6 +33,35 @@ const toBase64 = (file: File): Promise<string> =>
     reader.onerror = (error) => reject(error);
   });
 
+const isSplitPart = (name: string) =>
+  /\.z\d+$/i.test(name) || /\.zip\.\d+$/i.test(name);
+
+const parentZip = (name: string): string | null => {
+  const z = name.match(/^(.*)\.z\d+$/i);
+  if (z) return `${z[1]}.zip`;
+  const n = name.match(/^(.*\.zip)\.\d+$/i);
+  if (n) return n[1];
+  return null;
+};
+
+const syncSplitPaths = (files: { file: File; extractPath: string }[]) => {
+  const parentPaths = new Map<string, string>();
+  for (const zf of files) {
+    if (!isSplitPart(zf.file.name)) {
+      parentPaths.set(zf.file.name, zf.extractPath);
+    }
+  }
+  return files.map((zf) => {
+    if (isSplitPart(zf.file.name)) {
+      const parent = parentZip(zf.file.name);
+      if (parent && parentPaths.has(parent)) {
+        return { ...zf, extractPath: parentPaths.get(parent)! };
+      }
+    }
+    return zf;
+  });
+};
+
 export default function UploadModal({ onClose, pat }: UploadModalProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -67,18 +96,25 @@ export default function UploadModal({ onClose, pat }: UploadModalProps) {
 
   const handleZipFiles = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
-      const newFiles = Array.from(e.target.files).map((file) => ({
-        file,
-        extractPath: "{DLCDir}",
-      }));
-      setZipFiles((prev) => [...prev, ...newFiles]);
+      const newFiles = Array.from(e.target.files).map((file) => {
+        let extractPath = "{DLCDir}";
+        const parent = parentZip(file.name);
+        if (parent) {
+          const sibling = zipFiles.find((zf) => zf.file.name === parent);
+          if (sibling) extractPath = sibling.extractPath;
+        }
+        return { file, extractPath };
+      });
+      setZipFiles((prev) => syncSplitPaths([...prev, ...newFiles]));
     }
   };
 
   const updateZipPath = (index: number, path: string) => {
-    const updated = [...zipFiles];
-    updated[index].extractPath = path;
-    setZipFiles(updated);
+    setZipFiles((prev) => {
+      const updated = [...prev];
+      updated[index] = { ...updated[index], extractPath: path };
+      return syncSplitPaths(updated);
+    });
   };
 
   const removeZip = (index: number) => {
@@ -106,6 +142,25 @@ export default function UploadModal({ onClose, pat }: UploadModalProps) {
     if (zipFiles.length === 0) {
       setError("Please provide at least one .zip file.");
       return;
+    }
+    const zipNames = new Set(zipFiles.map((zf) => zf.file.name));
+    for (const zf of zipFiles) {
+      if (isSplitPart(zf.file.name)) {
+        const parent = parentZip(zf.file.name);
+        if (!parent || !zipNames.has(parent)) {
+          setError(
+            `"${zf.file.name}" is part of a split archive but "${parent}" is missing. Upload the main archive and every part.`,
+          );
+          return;
+        }
+        const parentFile = zipFiles.find((x) => x.file.name === parent);
+        if (parentFile && parentFile.extractPath !== zf.extractPath) {
+          setError(
+            `"${zf.file.name}" must extract to the same path as "${parent}".`,
+          );
+          return;
+        }
+      }
     }
     setError(null);
     setLoading(true);
@@ -1125,12 +1180,24 @@ export default function UploadModal({ onClose, pat }: UploadModalProps) {
               </div>
               <input
                 type="file"
-                accept=".zip"
+                accept=".zip,.z01,.z02,.z03,.z04,.z05,.z06,.z07,.z08,.z09,.z10,.z11,.z12,.z13,.z14,.z15,.z16,.z17,.z18,.z19,.z20,.zip.001,.zip.002,.zip.003,.zip.004,.zip.005"
                 multiple
                 onChange={handleZipFiles}
                 style={{ display: "none" }}
               />
             </label>
+            <div
+              style={{
+                fontSize: "0.8rem",
+                color: "#1d1d1d",
+                marginBottom: "0.75rem",
+                fontFamily: "inherit",
+              }}
+            >
+              Split archives (e.g. <code>.z01</code>, <code>.z02</code>) are
+              supported. Select every part together and they must share the same
+              extraction path.
+            </div>
             {zipFiles.map((zf, idx) => (
               <div
                 key={idx}
@@ -1152,6 +1219,21 @@ export default function UploadModal({ onClose, pat }: UploadModalProps) {
                   }}
                 >
                   {zf.file.name}
+                  {isSplitPart(zf.file.name) && (
+                    <span
+                      style={{
+                        marginLeft: "0.5rem",
+                        fontSize: "0.65rem",
+                        textTransform: "uppercase",
+                        letterSpacing: "0.5px",
+                        background: "#1d1d1d",
+                        color: "#FFFF55",
+                        padding: "0.15rem 0.4rem",
+                      }}
+                    >
+                      Split part
+                    </span>
+                  )}
                 </span>
                 <input
                   type="text"

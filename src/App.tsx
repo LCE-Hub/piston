@@ -6,6 +6,58 @@ import type { RegistryResponse, MetaJson } from './api/types';
 import { Key, X, Download, Upload, ExternalLink } from 'lucide-react';
 import UploadModal from './UploadModal';
 const GITHUB_CLIENT_ID = 'Ov23lioBHF1VmiCOoYui';
+
+interface ZipGroup {
+  main: string;
+  parts: string[];
+  dest: string;
+}
+
+const groupZips = (zips: Record<string, string>): ZipGroup[] => {
+  const entries = Object.entries(zips).sort(([a], [b]) => a.localeCompare(b));
+  const consumed = new Set<string>();
+  const groups: ZipGroup[] = [];
+  for (const [name, dest] of entries) {
+    if (consumed.has(name)) continue;
+    if (!name.toLowerCase().endsWith('.zip')) continue;
+    const base = name.slice(0, -4);
+    const parts = [name];
+    consumed.add(name);
+    let n = 1;
+    for (;;) {
+      const cand = `${base}.z${String(n).padStart(2, '0')}`;
+      if (zips[cand] !== undefined) {
+        parts.push(cand);
+        consumed.add(cand);
+        n++;
+      } else {
+        break;
+      }
+    }
+    if (parts.length === 1) {
+      n = 1;
+      for (;;) {
+        const cand = `${base}.zip.${String(n).padStart(3, '0')}`;
+        if (zips[cand] !== undefined) {
+          parts.push(cand);
+          consumed.add(cand);
+          n++;
+        } else {
+          break;
+        }
+      }
+    }
+    groups.push({ main: name, parts, dest });
+  }
+  for (const [name, dest] of entries) {
+    if (!consumed.has(name)) {
+      consumed.add(name);
+      groups.push({ main: name, parts: [name], dest });
+    }
+  }
+  return groups;
+};
+
 function App() {
   const [registry, setRegistry] = useState<RegistryResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -255,15 +307,39 @@ function App() {
 
               <h3 style={{ marginTop: '2rem' }}>Downloads & Installation</h3>
               <div className="mc-download-list">
-                {Object.entries(selectedItem.zips).map(([zipName, extractPath]) => (
-                  <div key={zipName} className="mc-download-item">
-                    <div className="mc-download-info">
-                      <strong>{zipName}</strong>
-                      <div className="mc-download-path">Extract to <code>{resolvePath(extractPath)}</code></div>
-                    </div>
-                    <a href={getRawFileUrl(selectedItem.id, zipName)} target="_blank" rel="noreferrer" className="mc-button mc-download-btn">
-                      <Download size={24} />
-                    </a>
+                {groupZips(selectedItem.zips).map((group) => (
+                  <div key={group.main} style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    {group.parts.map((part, i) => (
+                      <div key={part} className="mc-download-item">
+                        <div className="mc-download-info">
+                          <strong>
+                            {part}
+                            {group.parts.length > 1 && (
+                              <span style={{
+                                marginLeft: '0.5rem',
+                                fontSize: '0.7rem',
+                                textTransform: 'uppercase',
+                                letterSpacing: '0.5px',
+                                background: '#1d1d1d',
+                                color: '#FFFF55',
+                                padding: '0.15rem 0.4rem',
+                                verticalAlign: 'middle'
+                              }}>
+                                part {i + 1}/{group.parts.length}
+                              </span>
+                            )}
+                          </strong>
+                          <div className="mc-download-path">
+                            {i === 0
+                              ? <>Extract to <code>{resolvePath(group.dest)}</code></>
+                              : <>Continuation volume — keep all parts together to extract</>}
+                          </div>
+                        </div>
+                        <a href={getRawFileUrl(selectedItem.id, part)} target="_blank" rel="noreferrer" className="mc-button mc-download-btn">
+                          <Download size={24} />
+                        </a>
+                      </div>
+                    ))}
                   </div>
                 ))}
               </div>
