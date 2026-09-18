@@ -92,7 +92,7 @@ function App() {
   const initiateDeviceFlow = async () => {
     try {
       setLoginStatus('Requesting code...');
-      const proxyRoute = import.meta.env.DEV ? '/github-proxy' : 'https://corsproxy.io/?url=https://github.com';
+      const proxyRoute = import.meta.env.DEV ? '/github-proxy' : 'https://pistonproxy.lcehub.org';
       const res = await fetch(`${proxyRoute}/login/device/code`, {
         method: 'POST',
         headers: {
@@ -123,7 +123,7 @@ function App() {
     let timeoutId: number;
     const poll = async () => {
       try {
-        const proxyRoute = import.meta.env.DEV ? '/github-proxy' : 'https://corsproxy.io/?url=https://github.com';
+        const proxyRoute = import.meta.env.DEV ? '/github-proxy' : 'https://pistonproxy.lcehub.org';
         const res = await fetch(`${proxyRoute}/login/oauth/access_token`, {
           method: 'POST',
           headers: {
